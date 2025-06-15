@@ -10,5 +10,4 @@ apt-get update && apt-get install -y --no-install-recommends \
     g++
 
 # Install Python packages
-pip install --upgrade pip
 pip install -r requirements.txt
