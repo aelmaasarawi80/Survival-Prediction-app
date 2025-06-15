@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
+import numpy as np
 import matplotlib.pyplot as plt
 import requests
-import os
 from io import BytesIO
 
 # Helper function to load files from Google Drive
@@ -17,20 +16,24 @@ def load_from_drive(url):
 # Load model and preprocessor from Google Drive 
 @st.cache_resource
 def load_model():
-    model_file = load_from_drive(st.session_state.model_url)
-    preprocessor_file = load_from_drive(st.session_state.preprocessor_url)
+    # Use YOUR Google Drive links here
+    survival_model_url = "https://drive.google.com/file/d/1_mFMn9uqLRy9KDg8M7nS0fwhLRacS2v7/view?usp=drive_link"
+    preprocessor_url = "https://drive.google.com/file/d/1iTBD5o8-xPlkiAI-qtXOKT1q7CMmbm6q/view?usp=drive_link"
+
+    model_file = load_from_drive(survival_model_url)
+    preprocessor_file = load_from_drive(preprocessor_url)
+
     model = joblib.load(model_file)
     preprocessor = joblib.load(preprocessor_file)
     return model, preprocessor
 
-# Set URLs from user input (manually set for now)
-st.session_state.model_url = "https://drive.google.com/file/d/1_mFMn9uqLRy9KDg8M7nS0fwhLRacS2v7/view?usp=drive_link"
-st.session_state.preprocessor_url = "https://drive.google.com/file/d/1iTBD5o8-xPlkiAI-qtXOKT1q7CMmbm6q/view?usp=drive_link"
+model, preprocessor = load_model()
 
+# Title and description 
 st.title("🦷 Tooth Survival Prediction Tool")
 st.write("Enter patient details below to predict tooth survival probability over time.")
 
-# Input fields 
+# Input fields
 age = st.number_input("Age", min_value=18, max_value=100, value=40)
 vitality = st.selectbox("Vitality", ['Vital', 'Nonvital', 'Unknown'])
 gender = st.selectbox("Gender", ['Male', 'Female'])
@@ -45,26 +48,26 @@ pdttts = st.number_input("PDttts (Periodontal Depth)", min_value=0, max_value=30
 
 # Make prediction
 if st.button("Predict Survival"):
+    # Create DataFrame from input
+    patient_data = pd.DataFrame([{
+        'age': age,
+        'vitality': vitality,
+        'gender': gender,
+        'Protocol': protocol,
+        'toothtype': toothtype,
+        'provider': provider,
+        'Visits': visits,
+        'PRCT': prct,
+        'No_Visits': no_visits,
+        'time before obturation': time_before_obturation,
+        'PDttts': pdttts
+    }])
+
     try:
-        model, preprocessor = load_model()
-        
-        # Create DataFrame
-        patient_data = pd.DataFrame([{
-            'age': age,
-            'vitality': vitality,
-            'gender': gender,
-            'Protocol': protocol,
-            'toothtype': toothtype,
-            'provider': provider,
-            'Visits': visits,
-            'PRCT': prct,
-            'No_Visits': no_visits,
-            'time before obturation': time_before_obturation,
-            'PDttts': pdttts
-        }])
-        
-        # Encode and predict
+        # Encode and scale features
         X_encoded = preprocessor.transform(patient_data)
+
+        # Predict survival function
         surv_funcs = model.predict_survival_function(X_encoded)
         surv_func = surv_funcs[0]
 
@@ -72,7 +75,7 @@ if st.button("Predict Survival"):
         time_points = [1, 3, 5, 10]
         probs = [surv_func(t) for t in time_points]
 
-        # Show results
+        # Display results
         st.subheader("📊 Predicted Survival Probabilities")
         for t, p in zip(time_points, probs):
             st.write(f"{t}-year survival probability: **{p:.2%}**")
@@ -87,4 +90,4 @@ if st.button("Predict Survival"):
         st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error during prediction: {e}")
