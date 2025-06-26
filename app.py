@@ -62,7 +62,7 @@ if st.button("Predict Survival"):
         surv_func = surv_funcs[0]
 
         # Time points
-        time_points = [1, 3, 5, 10]
+        time_points = [1, 3, 5, 10, 15, 20]
         probs = [surv_func(t) for t in time_points]
 
         # Display results
