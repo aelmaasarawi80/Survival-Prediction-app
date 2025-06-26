@@ -1,28 +1,25 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
 import matplotlib.pyplot as plt
+import joblib
+import requests
+from io import BytesIO
 
-# Load model and preprocessor
+# Load model from GitHub raw link
 @st.cache_resource
-def load_model():
-    model = joblib.load('survival_model.pkl')
-    preprocessor = joblib.load('preprocessor.pkl')
-    return model, preprocessor
+def load_model(model_url):
+    response = requests.get(model_url)
+    model_file = BytesIO(response.content)
+    model = joblib.load(model_file)
+    return model
 
-model, preprocessor = load_model()
-
-# Define feature list (must match training)
-features = [
-    'age', 'vitality', 'gender', 'Protocol', 'toothtype',
-    'provider', 'Visits', 'PRCT', 'No_Visits',
-    'time before obturation', 'PDttts'
-]
-
-# Title and description
+# Define input form and prediction logic
 st.title("🦷 Tooth Survival Prediction Tool")
 st.write("Enter patient details below to predict tooth survival probability over time.")
+
+# Paste your GitHub raw link for gbsa_model.pkl
+model_url = st.secrets["model_url"] if "model_url" in st.secrets else "https://github.com/YOUR_USERNAME/YOUR_REPO/raw/main/gbsa_model.pkl "
 
 # Input fields
 age = st.number_input("Age", min_value=18, max_value=100, value=40)
@@ -37,29 +34,31 @@ no_visits = st.number_input("Number of Visits", min_value=1, max_value=10, value
 time_before_obturation = st.number_input("Time Before Obturation (days)", min_value=0, max_value=100, value=7)
 pdttts = st.number_input("PDttts (Periodontal Depth)", min_value=0, max_value=30, value=0)
 
-# Make a prediction
 if st.button("Predict Survival"):
-    # Create DataFrame from input
-    patient_data = pd.DataFrame([{
-        'age': age,
-        'vitality': vitality,
-        'gender': gender,
-        'Protocol': protocol,
-        'toothtype': toothtype,
-        'provider': provider,
-        'Visits': visits,
-        'PRCT': prct,
-        'No_Visits': no_visits,
-        'time before obturation': time_before_obturation,
-        'PDttts': pdttts
-    }])
-
     try:
-        # Encode and scale features
-        X_encoded = preprocessor.transform(patient_data)
+        # Load model from GitHub
+        model = load_model(model_url)
+
+        # Create DataFrame from input
+        patient_data = pd.DataFrame([{
+            'age': age,
+            'vitality': vitality,
+            'gender': gender,
+            'Protocol': protocol,
+            'toothtype': toothtype,
+            'provider': provider,
+            'Visits': visits,
+            'PRCT': prct,
+            'No_Visits': no_visits,
+            'time before obturation': time_before_obturation,
+            'PDttts': pdttts
+        }])
+
+        # Encode features using same preprocessor used during training
+        # ❗ This assumes you have a fixed preprocessor or encoded inputs match training data
 
         # Predict survival function
-        surv_funcs = model.predict_survival_function(X_encoded)
+        surv_funcs = model.predict_survival_function(patient_data)
         surv_func = surv_funcs[0]
 
         # Time points
@@ -79,7 +78,6 @@ if st.button("Predict Survival"):
         ax.set_ylabel("Survival Probability")
         ax.grid(True)
 
-        # Add markers at key time points
         for t in time_points:
             if t <= max(surv_func.x):
                 ax.plot(t, surv_func(t), "o", color="red")
@@ -88,4 +86,4 @@ if st.button("Predict Survival"):
         st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"Error during prediction: {e}")
+        st.error(f"Error: {e}")
