@@ -1,35 +1,26 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
+import joblib
 import matplotlib.pyplot as plt
-import requests
-from io import BytesIO
 
-# Helper function to load files from Google Drive
-def load_from_drive(url):
-    file_id = url.split("/d/")[1].split("/")[0]
-    download_url = f"https://drive.google.com/uc?id={file_id}"
-    response = requests.get(download_url)
-    return BytesIO(response.content)
-
-# Load model and preprocessor from Google Drive 
+# Load model and preprocessor
 @st.cache_resource
 def load_model():
-    # Use YOUR Google Drive links here
-    survival_model_url = "https://drive.google.com/file/d/1_mFMn9uqLRy9KDg8M7nS0fwhLRacS2v7/view?usp=drive_link"
-    preprocessor_url = "https://drive.google.com/file/d/1iTBD5o8-xPlkiAI-qtXOKT1q7CMmbm6q/view?usp=drive_link"
-
-    model_file = load_from_drive(survival_model_url)
-    preprocessor_file = load_from_drive(preprocessor_url)
-
-    model = joblib.load(model_file)
-    preprocessor = joblib.load(preprocessor_file)
+    model = joblib.load('survival_model.pkl')
+    preprocessor = joblib.load('preprocessor.pkl')
     return model, preprocessor
 
 model, preprocessor = load_model()
 
-# Title and description 
+# Define feature list (must match training)
+features = [
+    'age', 'vitality', 'gender', 'Protocol', 'toothtype',
+    'provider', 'Visits', 'PRCT', 'No_Visits',
+    'time before obturation', 'PDttts'
+]
+
+# Title and description
 st.title("🦷 Tooth Survival Prediction Tool")
 st.write("Enter patient details below to predict tooth survival probability over time.")
 
@@ -46,7 +37,7 @@ no_visits = st.number_input("Number of Visits", min_value=1, max_value=10, value
 time_before_obturation = st.number_input("Time Before Obturation (days)", min_value=0, max_value=100, value=7)
 pdttts = st.number_input("PDttts (Periodontal Depth)", min_value=0, max_value=30, value=0)
 
-# Make prediction
+# Make a prediction
 if st.button("Predict Survival"):
     # Create DataFrame from input
     patient_data = pd.DataFrame([{
@@ -87,6 +78,13 @@ if st.button("Predict Survival"):
         ax.set_xlabel("Time (years)")
         ax.set_ylabel("Survival Probability")
         ax.grid(True)
+
+        # Add markers at key time points
+        for t in time_points:
+            if t <= max(surv_func.x):
+                ax.plot(t, surv_func(t), "o", color="red")
+                ax.text(t, surv_func(t), f"{surv_func(t):.2%}", ha='center', va='bottom')
+
         st.pyplot(fig)
 
     except Exception as e:
