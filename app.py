@@ -19,7 +19,7 @@ st.title("🦷 Tooth Survival Prediction Tool")
 st.write("Enter patient details below to predict tooth survival probability over time.")
 
 # Paste your GitHub raw link for gbsa_model.pkl
-model_url = st.secrets["model_url"] if "model_url" in st.secrets else "https://github.com/YOUR_USERNAME/YOUR_REPO/raw/main/gbsa_model.pkl "
+model_url = st.secrets["model_url"] if "model_url" in st.secrets else "https://github.com/aelmaasarawi80/Survival-Prediction-app/blob/main/survival_model.pkl"
 
 # Input fields
 age = st.number_input("Age", min_value=18, max_value=100, value=40)
