@@ -19,15 +19,15 @@ st.title("🦷 Tooth Survival Prediction App")
 st.markdown("Enter patient information below to predict tooth survival after root canal treatment.")
 
 # Form inputs
-age = st.slider("Age", min_value=10, max_value=90, value=35)
-gender = st.selectbox("Gender", ["Male", "Female"])
-vitality = st.selectbox("Vitality", ["Vital", "Nonvital"])
-protocol = st.selectbox("Treatment Protocol", ["Protocol 1", "Protocol 2", "Protocol 3"])
+age = st.slider("Age of the patient", min_value=10, max_value=90, value=35)
+gender = st.selectbox("Gender of the patient", ["Male", "Female"])
+vitality = st.selectbox("Preoperative tooth vitality condition", ["Vital", "Nonvital"])
+protocol = st.selectbox("Treatment Protocol implemented", ["Protocol 1", "Protocol 2", "Protocol 3"])
 toothtype = st.selectbox("Tooth Type", ["Anterior", "Premolar", "Molar"])
 provider = st.selectbox("Provider Type", ["Specialist", "General Practitioner"])
 visits = st.selectbox("Number of Visits", ["Single", "Multiple"])
-prct = st.slider("PRCT value", min_value=0, max_value=15, value=0)
-pdttts = st.slider("PDttts value", min_value=0, max_value=50, value=0)
+prct = st.slider("No. of previous RCT", min_value=0, max_value=15, value=0)
+pdttts = st.slider("No. of previous supportive periodontal treatments", min_value=0, max_value=50, value=0)
 
 # Normalization dictionary
 normalize_input = {
