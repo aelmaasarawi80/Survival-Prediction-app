@@ -32,6 +32,39 @@ with st.form("patient_form"):
     prct = st.number_input("PRCT", min_value=0.0, step=0.1)
     pdttts = st.number_input("PDttts", min_value=0.0, step=0.1)
 
+    # Fix capitalization/whitespace issues
+normalize_input = {
+    "vitality": {"Vital": "Vital", "Nonvital": "Nonvital"},
+    "gender": {"Male": "Male", "Female": "Female"},
+    "Protocol": {
+        "Protocol 1": "Protocol 1",
+        "Protocol 2": "protocol 2",  # Note lowercase p to match training
+        "Protocol 3": "Protocol 3",
+    },
+    "toothtype": {
+        "Anterior": "Anterior tooth",
+        "Premolar": "Premolar",
+        "Molar": "Molar",
+    },
+    "provider": {
+        "Specialist": "Specialist",
+        "General Practitioner": "General Practitioner",
+    },
+}
+
+# Build cleaned patient input
+patient_data = {
+    "age": age,
+    "vitality": normalize_input["vitality"][vitality],
+    "gender": normalize_input["gender"][gender],
+    "Protocol": normalize_input["Protocol"][protocol],
+    "toothtype": normalize_input["toothtype"][toothtype],
+    "provider": normalize_input["provider"][provider],
+    "Visits": "Single" if visits == 1 else "Multiple",
+    "PRCT": prct,
+    "PDttts": pdttts,
+}
+
     submitted = st.form_submit_button("Predict Survival")
 
 if submitted:
