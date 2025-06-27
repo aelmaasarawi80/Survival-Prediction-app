@@ -4,95 +4,65 @@ import numpy as np
 import matplotlib.pyplot as plt
 import joblib
 
-from sksurv.ensemble import RandomSurvivalForest
-from sksurv.util import Surv
-
-# Load the model and preprocessor
+# Load  model/preprocessor
 model = joblib.load("rsf_model_compressed.pkl")
 preprocessor = joblib.load("preprocessor.pkl")
 
-st.title("Tooth Survival Prediction After Root Canal Treatment")
+st.title("Tooth Survival Prediction")
 
-# --- INPUT FIELDS ---
-age = st.number_input("Patient Age", min_value=10, max_value=100, step=1)
+# Input form
+age = st.number_input("Age", min_value=10, max_value=100, step=1)
 vitality = st.selectbox("Vitality", ["Vital", "Nonvital"])
 gender = st.selectbox("Gender", ["Male", "Female"])
 protocol = st.selectbox("Protocol", ["Protocol 1", "Protocol 2", "Protocol 3"])
 toothtype = st.selectbox("Tooth Type", ["Anterior", "Premolar", "Molar"])
 provider = st.selectbox("Provider", ["Specialist", "General Practitioner"])
-visits = st.radio("Number of Visits", ["Single", "Multiple"])
-prct = st.number_input("PRCT (e.g., crown length)", format="%.3f")
-pdttts = st.number_input("PDttts (e.g., probing depth)", format="%.3f")
+visits = st.radio("Visits", ["Single", "Multiple"])
+prct = st.number_input("PRCT", format="%.3f")
+pdttts = st.number_input("PDttts", format="%.3f")
 
-# Normalize categorical inputs to match what model saw
-normalize_input = {
-    "vitality": {"Vital": "Vital", "Nonvital": "Nonvital"},
-    "gender": {"Male": "Male", "Female": "Female"},
-    "Protocol": {
-        "Protocol 1": "Protocol 1",
-        "Protocol 2": "protocol 2",  # Lowercase to match preprocessor
-        "Protocol 3": "Protocol 3",
-    },
-    "toothtype": {
-        "Anterior": "Anterior tooth",
-        "Premolar": "Premolar",
-        "Molar": "Molar",
-    },
-    "provider": {
-        "Specialist": "Specialist",
-        "General Practitioner": "General Practitioner",
-    },
-    "Visits": {"Single": "Single", "Multiple": "Multiple"},
-}
+if st.button("Predict Survival"):
+    # Normalize category values
+    norm = {
+       "Protocol 2": "protocol 2", # lowercase
+       "Anterior": "Anterior tooth", # note mismatch with preprocessor
+    }
+    pd_input = {
+       "age": age,
+       "vitality": vitality,
+       "gender": gender,
+       "Protocol": norm.get(protocol, protocol),
+       "toothtype": norm.get(toothtype, toothtype),
+       "provider": provider,
+       "Visits": visits,
+       "PRCT": prct,
+       "PDttts": pdttts,
+    }
 
-# Assemble patient data
-patient_data = {
-    "age": age,
-    "vitality": normalize_input["vitality"][vitality],
-    "gender": normalize_input["gender"][gender],
-    "Protocol": normalize_input["Protocol"][protocol],
-    "toothtype": normalize_input["toothtype"][toothtype],
-    "provider": normalize_input["provider"][provider],
-    "Visits": normalize_input["Visits"][visits],
-    "PRCT": prct,
-    "PDttts": pdttts,
-}
-
-# Prediction Button
-if st.button("Predict Tooth Survival"):
+    st.write("🔍 Raw input:", pd_input)
 
     try:
-        # Convert to DataFrame and transform
-        X_new = pd.DataFrame([patient_data])
-        X_encoded = preprocessor.transform(X_new)
+        X_new = pd.DataFrame([pd_input])
+        st.write("➡️ DataFrame before transform:", X_new)
 
-        # Predict survival function
-        surv_func = model.predict_survival_function(X_encoded)[0]
+        X_enc = preprocessor.transform(X_new)
+        st.write("✅ Encoded shape:", X_enc.shape)
 
-        # Evaluate at specific years
-        time_points = [1, 3, 5, 10, 15, 20]
-        probs = {t: surv_func(t) for t in time_points if t <= max(surv_func.x)}
+        surv = model.predict_survival_function(X_enc)[0]
+        st.write("Surv.x:", surv.x[:5], "…", surv.x[-5:])
+        st.write("Surv(surv.x):", surv(surv.x)[:5], "…")
 
-        st.subheader("Predicted Survival Probabilities:")
-        for t, p in probs.items():
-            st.write(f"**{t} years**: {p:.2%}")
+        # Choose timepoints
+        times = [1,3,5,10,15,20]
+        valid = {t: surv(t) for t in times if t <= max(surv.x)}
+        st.write("📊 Survival probs:", valid)
 
-        # Plot survival curve
         fig, ax = plt.subplots()
-        ax.step(surv_func.x, surv_func(surv_func.x), where="post", color="blue", label="Survival Curve")
-        ax.set_xlabel("Time (Years)")
-        ax.set_ylabel("Survival Probability")
-        ax.set_title("Predicted Tooth Survival")
-        ax.grid(True)
-
-        # Add year markers
-        for t in time_points:
-            if t <= max(surv_func.x):
-                ax.plot(t, surv_func(t), "o", color="red")
-                ax.text(t, surv_func(t), f"{surv_func(t):.2%}", ha='center', va='bottom')
-
+        ax.step(surv.x, surv(surv.x), where='post')
+        for t,p in valid.items():
+            ax.plot(t, p, "ro")
         st.pyplot(fig)
 
-    except Exception as e:
-        st.error("Prediction failed. Please check the input or model compatibility.")
-        st.exception(e)
+    except Exception as ex:
+        st.error("❌ Error during prediction — see details 📋")
+        st.exception(ex)
