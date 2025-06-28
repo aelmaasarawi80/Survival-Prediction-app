@@ -59,7 +59,7 @@ normalize_input = {
 }
 
 # Predict button
-if st.button("Predict Survival"):
+if st.button("Predict Survival until extraction"):
     try:
         # Build cleaned input dictionary
         patient_data = {
@@ -85,7 +85,7 @@ if st.button("Predict Survival"):
         time_points = [1, 3, 5, 10, 15, 20]
 
         # Print predictions
-        st.subheader("📈 Predicted Survival Probabilitiesuntil extraction")
+        st.subheader("📈 Predicted Survival Probabilities until extraction")
         for t in time_points:
             if t <= max(surv_func.x):
                 st.write(f"**{t}-year**: {surv_func(t):.2%}")
@@ -111,7 +111,7 @@ if st.button("Predict Survival"):
 
 
 # Predict button
-if st.button("Predict Survival"):
+if st.button("Predict Survival until retreatment"):
     try:
         # Build cleaned input dictionary
         patient_data2 = {
