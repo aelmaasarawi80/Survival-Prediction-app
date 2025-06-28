@@ -146,7 +146,7 @@ if st.button("Predict Survival until NS retreatment"):
         time_points = [1, 3, 5, 10, 15, 20]
 
         # Print predictions
-        st.subheader("📈 Predicted Survival Probabilities until retreatment")
+        st.subheader("📈 Predicted Survival Probabilities until non-surgical retreatment")
         for t in time_points:
             if t <= max(surv_func2.x):
                 st.write(f"**{t}-year**: {surv_func2(t):.2%}")
@@ -197,7 +197,7 @@ if st.button("Predict Survival until S retreatment"):
         time_points = [1, 3, 5, 10, 15, 20]
 
         # Print predictions
-        st.subheader("📈 Predicted Survival Probabilities until retreatment")
+        st.subheader("📈 Predicted Survival Probabilities until surgical retreatment")
         for t in time_points:
             if t <= max(surv_func3.x):
                 st.write(f"**{t}-year**: {surv_func3(t):.2%}")
