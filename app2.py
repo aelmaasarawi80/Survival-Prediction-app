@@ -85,7 +85,7 @@ if st.button("Predict Survival"):
         time_points = [1, 3, 5, 10, 15, 20]
 
         # Print predictions
-        st.subheader("📈 Predicted Survival Probabilities")
+        st.subheader("📈 Predicted Survival Probabilitiesuntil extraction")
         for t in time_points:
             if t <= max(surv_func.x):
                 st.write(f"**{t}-year**: {surv_func(t):.2%}")
@@ -102,6 +102,58 @@ if st.button("Predict Survival"):
             if t <= max(surv_func.x):
                 ax.plot(t, surv_func(t), "ro")
                 ax.text(t, surv_func(t), f"{surv_func(t):.2%}", ha='center', va='bottom')
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error("❌ An error occurred during prediction.")
+        st.exception(e)
+
+
+
+# Predict button
+if st.button("Predict Survival"):
+    try:
+        # Build cleaned input dictionary
+        patient_data2 = {
+            "age": age,
+            "gender": normalize_input["gender"][gender],
+            "vitality": normalize_input["vitality"][vitality],
+            "Protocol": normalize_input["Protocol"][protocol],
+            "toothtype": normalize_input["toothtype"][toothtype],
+            "provider": normalize_input["provider"][provider],
+            "Visits": visits,
+            "PRCT": prct,
+            "PDttts": pdttts,
+        }
+
+        # Convert to DataFrame and transform
+        X_new2 = pd.DataFrame([patient_data2])
+        X_encoded2 = preprocessor2.transform(X_new2)
+
+        # Predict survival
+        surv_func2 = model2.predict_survival_function(X_encoded2)[0]
+
+        # Time points
+        time_points = [1, 3, 5, 10, 15, 20]
+
+        # Print predictions
+        st.subheader("📈 Predicted Survival Probabilities until retreatment")
+        for t in time_points:
+            if t <= max(surv_func2.x):
+                st.write(f"**{t}-year**: {surv_func2(t):.2%}")
+
+        # Plot survival curve
+        fig, ax = plt.subplots()
+        ax.step(surv_func2.x, surv_func2(surv_func2.x), where="post", color="blue")
+        ax.set_title("Predicted Tooth Survival Curve")
+        ax.set_xlabel("Time (years)")
+        ax.set_ylabel("Estimated Survival Probability")
+        ax.set_ylim(0, 1.05)  # 🔧 Y-axis starts at 0
+        ax.grid(True)
+        for t in time_points:
+            if t <= max(surv_func2.x):
+                ax.plot(t, surv_func2(t), "ro")
+                ax.text(t, surv_func2(t), f"{surv_func2(t):.2%}", ha='center', va='bottom')
         st.pyplot(fig)
 
     except Exception as e:
