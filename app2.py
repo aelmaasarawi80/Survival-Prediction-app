@@ -17,7 +17,7 @@ model, preprocessor = load_model_and_preprocessor()
 @st.cache_resource
 def load_model_and_preprocessor2():
     model2 = joblib.load("gbsa_model.pkl")
-    preprocessor = joblib.load("preprocessor2.pkl")
+    preprocessor2 = joblib.load("preprocessor2.pkl")
     return model2, preprocessor2
 
 model2, preprocessor2 = load_model_and_preprocessor2()
