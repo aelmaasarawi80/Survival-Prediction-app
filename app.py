@@ -13,6 +13,22 @@ def load_model_and_preprocessor():
 
 model, preprocessor = load_model_and_preprocessor()
 
+@st.cache_resource
+def load_model_and_preprocessor2():
+    model2 = joblib.load("gbsa_model.pkl")
+    preprocessor2 = joblib.load("preprocessor2.pkl")
+    return model2, preprocessor2
+
+model2, preprocessor2 = load_model_and_preprocessor2()
+
+@st.cache_resource
+def load_model_and_preprocessor3():
+    model3 = joblib.load("gbsa_model2.pkl")
+    preprocessor3 = joblib.load("preprocessor3.pkl")
+    return model3, preprocessor3
+
+model3, preprocessor3 = load_model_and_preprocessor3()
+
 # Title
 st.title("🦷 Tooth Survival Prediction App")
 
@@ -35,11 +51,11 @@ normalize_input = {
     "gender": {"Male": "Male", "Female": "Female"},
     "Protocol": {
         "Protocol 1": "Protocol 1",
-        "Protocol 2": "protocol 2",  # matches training data casing
+        "Protocol 2": "protocol 2",
         "Protocol 3": "Protocol 3",
     },
     "toothtype": {
-        "Anterior": "Anterior tooth",  # matches encoded column
+        "Anterior": "Anterior tooth",
         "Premolar": "Premolar",
         "Molar": "Molar",
     },
@@ -49,10 +65,10 @@ normalize_input = {
     },
 }
 
-# Predict button
-if st.button("Predict Survival"):
+# Combined Prediction and Plot
+if st.button("Predict and Show Combined Survival Curve"):
     try:
-        # Build cleaned input dictionary
+        # Common input processing
         patient_data = {
             "age": age,
             "gender": normalize_input["gender"][gender],
@@ -65,34 +81,48 @@ if st.button("Predict Survival"):
             "PDttts": pdttts,
         }
 
-        # Convert to DataFrame and transform
         X_new = pd.DataFrame([patient_data])
         X_encoded = preprocessor.transform(X_new)
+        X_encoded2 = preprocessor2.transform(X_new)
+        X_encoded3 = preprocessor3.transform(X_new)
 
-        # Predict survival
-        surv_func = model.predict_survival_function(X_encoded)[0]
+        surv_func1 = model.predict_survival_function(X_encoded)[0]
+        surv_func2 = model2.predict_survival_function(X_encoded2)[0]
+        surv_func3 = model3.predict_survival_function(X_encoded3)[0]
 
-        # Time points
         time_points = [1, 3, 5, 10, 15, 20]
+        results = {
+            "Year": [],
+            "Until Extraction": [],
+            "Until NS Retreatment": [],
+            "Until S Retreatment": [],
+        }
 
-        # Print predictions
-        st.subheader("📈 Predicted Survival Probabilities")
         for t in time_points:
-            if t <= max(surv_func.x):
-                st.write(f"**{t}-year**: {surv_func(t):.2%}")
+            results["Year"].append(t)
+            results["Until Extraction"].append(f"{surv_func1(t):.2%}" if t <= max(surv_func1.x) else "N/A")
+            results["Until NS Retreatment"].append(f"{surv_func2(t):.2%}" if t <= max(surv_func2.x) else "N/A")
+            results["Until S Retreatment"].append(f"{surv_func3(t):.2%}" if t <= max(surv_func3.x) else "N/A")
 
-        # Plot survival curve
+        df_results = pd.DataFrame(results)
+
+        # Display table
+        st.subheader("📊 Survival Probabilities at Selected Time Points")
+        st.table(df_results)
+
+        # Plot
         fig, ax = plt.subplots()
-        ax.step(surv_func.x, surv_func(surv_func.x), where="post", color="blue")
-        ax.set_title("Predicted Tooth Survival Curve")
+        ax.step(surv_func1.x, surv_func1(surv_func1.x), where="post", label="Until Extraction", color="blue")
+        ax.step(surv_func2.x, surv_func2(surv_func2.x), where="post", label="Until NS Retreatment", color="green")
+        ax.step(surv_func3.x, surv_func3(surv_func3.x), where="post", label="Until S Retreatment", color="red")
+
+        ax.set_title("Predicted Tooth Survival Curves")
         ax.set_xlabel("Time (years)")
         ax.set_ylabel("Estimated Survival Probability")
-        ax.set_ylim(0, 1.05)  # 🔧 Y-axis starts at 0
+        ax.set_ylim(0, 1.05)
         ax.grid(True)
-        for t in time_points:
-            if t <= max(surv_func.x):
-                ax.plot(t, surv_func(t), "ro")
-                ax.text(t, surv_func(t), f"{surv_func(t):.2%}", ha='center', va='bottom')
+        ax.legend()
+
         st.pyplot(fig)
 
     except Exception as e:
